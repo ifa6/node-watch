@@ -1,4 +1,5 @@
-// [Node-watch](https://github.com/jorritd/node-watch) Is a small [nodejs](http://www.nodejs.org/) 
+// [Node-watch](https://github.com/jorritd/node-watch) 
+// Is a small [nodejs](http://www.nodejs.org/) 
 // module/lib to watch for file changes.
 // Filechanges are: 
 //
@@ -49,7 +50,8 @@ var EventEmitter = require("events").EventEmitter;
 // *private helper function:* 
 // extends child with the prototypes of parent and return the extended child 
 
-var __hasProp = Object.prototype.hasOwnProperty, __extends = function(child, parent) {
+var __hasProp = Object.prototype.hasOwnProperty, 
+    __extends = function(child, parent) {
   for (var key in parent) {
     if (__hasProp.call(parent, key)) {
       child[key] = parent[key];
