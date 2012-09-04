@@ -232,7 +232,7 @@ var WatchClass = function() {
           }
         });
       }else{
-        throw 'Folder allready being watched';
+        throw 'Folder already being watched';
       }
 
     }else{
