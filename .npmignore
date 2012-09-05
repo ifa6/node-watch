@@ -1,7 +1,16 @@
-Jakefile
-README,md
-specs/*
-src/*
+# OS generated files #
+######################
+.DS_Store
+
+# Thumbnails
+._*
+
+# Files that might appear on external disk
+.Spotlight-V100
+.Trashes
+
+# PROJECT FILES #
 node_modules
-.gitignore
-.npmignore
+src
+Jakefile
+specs

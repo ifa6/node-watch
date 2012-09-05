@@ -1,6 +1,6 @@
 
 // Extend VNLS namespace with helper functions
-VNLS.ns('watch.test',{
+VNLS.ns('watch.utils',{
   
   // ### removeRecursive
   // Delete a file or delete a DIR recursive
@@ -10,7 +10,7 @@ VNLS.ns('watch.test',{
   //
   // 
   // 
-  // We need a callback 
+   
   removeRecursive : function(path,cb){
     var self = this;
     var fs = require('fs');

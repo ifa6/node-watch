@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
     "name" : "nodewatch",
     "description" : "Simple utility to watch file changes. A file change is a file whom's mtime is changed",
     "version" : "0.1.0",
@@ -28,3 +29,44 @@
     "engines" : { "node" : ">=0.4.0" },
     "licenses" : [ { "type" : "AS IS" } ]
 }
+=======
+  "author": "Jorrit Duin",
+  "name": "nodewatch",
+  "description": "Simple utility to watch file changes. A file change is a file whom's mtime is changed",
+  "version": "0.3.0",
+  "homepage": "http://jorritd.github.com/node-watch/",
+  "author": "Jorrit Duin <jorrit.duin@gmail.com> ",
+  "keywords": [
+    "watch",
+    "tdd",
+    "change",
+    "filechange"
+  ],
+   "directories" : {
+        "lib" : "./lib",
+        "docs" : "./docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jorritd/node-watch.git"
+  },
+  "main": "lib/watch.js",
+  "engines" : { "node" : ">=0.4.0" },
+  "bugs": {
+    "url": "https://github.com/jorritd/node-watch/issues"
+  },
+  "devDependencies": {
+    "jake":"0.2.15",
+    "docco":"0.3.0",
+    "jasmine-node":"1.0.20",
+    "nodewatch":"0.1.0",
+    "uglify-js":"1.2.5"
+  },
+  "licenses": [
+    {
+      "type": "GNU General Public License",
+      "url": "http://www.gnu.org/licenses"
+    }
+  ]
+}
+>>>>>>> 0.2.0
