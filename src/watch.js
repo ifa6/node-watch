@@ -158,7 +158,10 @@ var WatchClass = function() {
     // so we can add/remove anything that gets to this point to/from
     // the list of explicitly watched items
     if (add) {
-      this.__topLvlWatchers.push(str_file_or_path);
+      if(this.__topLvlWatchers.indexOf(str_file_or_path) === -1){
+        // Only add when it's not allready there
+        this.__topLvlWatchers.push(str_file_or_path);
+      }
     } else {
       var index = this.__topLvlWatchers.indexOf(str_file_or_path);
       if (index >= 0) {
@@ -314,9 +317,17 @@ var WatchClass = function() {
         // We won't need to call anything recursively to remove watchers
         // for any descendants because they to will have been deleted and
         // have this callback.
+        //
+        // But what when we want to remove a watched folder, and
+        // this folder is not deleted
+        //
+
+        console.log('__rescan');
+
         if(self.__topLvlWatchers.indexOf(folder) < 0){
           self.fs.unwatchFile(folder);
           delete self.__watchedItems[folder];
+          
         }
       }else{
         var files = self.fs.readdirSync(folder);

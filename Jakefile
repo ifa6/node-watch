@@ -6,17 +6,16 @@ task("build",["docs"],function(){
     var fs = require("fs");
     var jsp = require("uglify-js").parser;
     var pro = require("uglify-js").uglify;
-    var orig_code = fs.readFileSync(process.cwd()+"/src/watch.js").toString();
+    var orig_code = fs.readFileSync("src/watch.js").toString();
     var ast = jsp.parse(orig_code); // parse code and get the initial AST
     // ast = pro.ast_mangle(ast); // get a new AST with mangled names
     // ast = pro.ast_squeeze(ast); // get an AST with compression optimizations
     var options = {};
     options.beautify = true;
     var final_code = pro.gen_code(ast,options); // compressed code here
-    var fd = fs.openSync(process.cwd()+"/lib/watch.js","w");
-    fs.writeSync(fd, final_code);
+    fs.writeFileSync("lib/watch.js", final_code);
    console.log('Build done');
-   console.log('Test integration');
+   // console.log('Test integration');
 });
 
 
@@ -41,6 +40,7 @@ task("docs",function(){
 
 desc("run specs");
 task("test",function(){
+    require('VNLS');
     var jasmine = require('jasmine-node');
     
     jasmine.dev_mode = "src";
@@ -111,7 +111,7 @@ task('autotest',function(){
         busy = false,
         test = null;
         
-    watch.add("./spec").add("./src/watch").onChange(function(file){
+    watch.add("./specs").add("./src").onChange(function(file){
         if(!busy){
             busy = true;
             test    = spawn('jake', ['test']);
