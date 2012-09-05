@@ -25,10 +25,12 @@ and make changes in the src/watch/watch.js file or the spec/watchSpec.js file an
      // Adding 2 dirs relative from process.cwd()
      // Nested dirs are not watched
      // dirs can also be added absolute
-     watch.add("./spec").add("./lib/watch").onChange(function(file,prev,curr){
+     watch.add("./spec").add("./lib/watch").onChange(function(file,prev,curr,action){
         console.log(file);
         console.log(prev.mtime.getTime());
         console.log(curr.mtime.getTime());
+        console.log(action) // new, changed, deleted
+
      });
      
      // Clear (remove) the listeners
