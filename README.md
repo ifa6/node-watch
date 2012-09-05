@@ -54,10 +54,11 @@ and make changes in the src/watch/watch.js file or the spec/watchSpec.js file an
      
      // Set a listener
      // It will provide a file (filename as string), prev and curr stats objects
-     watch.onChange(function(file,prev,curr){
+     watch.onChange(function(file,prev,curr,action){
             console.log(file);
             console.log(prev.mtime.getTime());
             console.log(curr.mtime.getTime());
+            console.log(action); // new, change, delete
       });
      
      // Remove a dir or file (absolute or relative)
