@@ -1,12 +1,12 @@
-// [Node-watch](https://github.com/jorritd/node-watch) 
-// Is a small [nodejs](http://www.nodejs.org/) 
+// [Node-watch](https://github.com/jorritd/node-watch) Is a small [nodejs](http://www.nodejs.org/) 
 // module/lib to watch for file changes.
 // Filechanges are: 
 //
 // 1. changes where the mtime (make-time) of file's changes.
 // 2. Files added to a watched folder
 // 3. Files deleted from a watched folder
-
+//
+// Merged https://github.com/tigerbot version 
 
 // 
 //#### Install:
@@ -33,7 +33,7 @@
 //          
 //        console.log(file);
 //        console.log(prev.mtime);
-//        console.log(curr,mtime);
+//        console.log(curr.mtime);
 //        console.log(action);
 //      });
 //   
@@ -44,33 +44,14 @@
 //      watch.remove("./spec").remove("./lib/watch");
 //  
 
-// *nodejs requirements: EventEmitter, fs, path*
-var EventEmitter = require("events").EventEmitter;
+// *nodejs requirements: EventEmitter, fs, path, util*
+var EventEmitter = require("events").EventEmitter, util = require("util");
 
-// *private helper function:* 
-// extends child with the prototypes of parent and return the extended child 
-
-var __hasProp = Object.prototype.hasOwnProperty, 
-    __extends = function(child, parent) {
-  for (var key in parent) {
-    if (__hasProp.call(parent, key)) {
-      child[key] = parent[key];
-    }
-  }
-  function ctor() {
-    this.constructor = child;
-  }
-  ctor.prototype = parent.prototype;
-  child.prototype = new ctor;
-  child.__super__ = parent.prototype;
-  return child;
-};
 // ## Watch class declaration ##
-// extends from [EventEmitter](http://nodejs.org/docs/v0.4.8/api/events.html#events.EventEmitter)
+// extends from [EventEmitter](http://nodejs.org/api/events.html#events.EventEmitter)
 
 var WatchClass = function() {
   "use strict";
-  __extends(Watch, EventEmitter);
   // ### PUBLIC METHODS ###
   // 
   // -----------------------
@@ -79,11 +60,18 @@ var WatchClass = function() {
   // ## Watch class Constructor ##
   
   function Watch(options) {
-    this.__watchedFolders = {};
+    // Call the super constructor first to initialize the emitter
+    EventEmitter.call(this);
+    // objects to track the files and directories we are explicitly
+    // told to watch, and the files and directories that we're watching
+    // because they are in directories we're explicitly to to watch
+    this.__topLvlWatchers = [];
+    this.__watchedItems = {};
     this.fs = require('fs');
     this.path = require('path');
   }
-  
+  util.inherits(Watch, EventEmitter);
+
   // ## Public method: add(path , [recursive]) ##
   // `path` is an absolute or relative path
   // to a file or dir to add (watch),
@@ -95,14 +83,6 @@ var WatchClass = function() {
   
   Watch.prototype.add = function(str_file_or_path, recursive) {
     recursive = recursive || false;
-    if (str_file_or_path.substring(0, 1) == ".") {
-      str_file_or_path = process.cwd() + "/" + str_file_or_path;
-    }
-    // str_file_or_path = this.path.normalize(str_file_or_path);
-    
-    // We should throw to be backbwards compatible
-    // On the bliblic interface
-    var stat = this.fs.statSync(str_file_or_path);
     
     return this.__handle(true, str_file_or_path, recursive);
   };
@@ -115,16 +95,12 @@ var WatchClass = function() {
   // returns this object
   
   Watch.prototype.remove = function(str_file_or_path) {
-    var recursive = false;
-    if(this.__watchedFolders.hasOwnProperty(str_file_or_path)){
-        recursive = this.__watchedFolders[str_file_or_path].recursive
-    }
-    return this.__handle(false, str_file_or_path , recursive);
+    // we don't really need to specify recursive here,
+    // __handle doesn't use it anyway if add isn't true
+    return this.__handle(false, str_file_or_path);
   };
   
   // ## Public method: onChange(callback) ##
-  // Todo: check if *cb* is a function
-  // 
   // add a callback *cb* :
   //
   //    function(file,prev,curr,action){
@@ -141,7 +117,11 @@ var WatchClass = function() {
   // and return *this* object
   
   Watch.prototype.onChange = function(cb) {
-    this.on("change", cb);
+    if (typeof cb === 'function') {
+      this.on('change', cb);
+    }else{
+      throw new Error('Non-function provided as the callback for onChange');
+    }
     return this;
   };
   
@@ -172,16 +152,38 @@ var WatchClass = function() {
   // returns this object
   
   Watch.prototype.__handle = function(add, str_file_or_path, recursive) {
-    if (str_file_or_path.substring(0, 1) == ".") {
-      str_file_or_path = process.cwd() + "/" + str_file_or_path;
+    str_file_or_path = this.path.resolve(str_file_or_path);
+
+    // __handle is only called by the public add/remove functions,
+    // so we can add/remove anything that gets to this point to/from
+    // the list of explicitly watched items
+    if (add) {
+      this.__topLvlWatchers.push(str_file_or_path);
+    } else {
+      var index = this.__topLvlWatchers.indexOf(str_file_or_path);
+      if (index >= 0) {
+        this.__topLvlWatchers.splice(index, 1);
+      }
     }
-    str_file_or_path = this.path.normalize(str_file_or_path);
+
     // Do not proccess deleted files
     var stat = null;
     try{
       stat = this.fs.statSync(str_file_or_path);
     }catch(e){
-      stat = false;
+      if (add) {
+        // We should throw on 'add' to be backwards compatible
+        // On the public interface
+        throw e;
+      }else{
+        stat = false;
+        // If the file is deleted but still being watched make sure
+        // we remove the listeners for it.
+        if (self.__watchedItems.hasOwnProperty(str_file_or_path)) {
+          self.fs.unwatchFile(str_file_or_path);
+          delete self.__watchedItems[str_file_or_path];
+        }
+      }
     }
     if(stat){
       if (stat.isFile()) {
@@ -206,55 +208,38 @@ var WatchClass = function() {
 
 
     if(add){
-      if(!this.__watchedFolders.hasOwnProperty(dir)){
-        this.__watchedFolders[dir]= { recursive : recursive };
-        self.__rescan(add,dir,recursive);
+      if(!self.__watchedItems.hasOwnProperty(dir)){
+        self.__watchedItems[dir]= { recursive : recursive };
+        self.__rescan(add,dir,recursive,false);
         self.fs.watchFile(dir, function(curr, prev) {
-          if (prev.nlink !== curr.nlink) {
-              // Ok, deletion or creation of a file is being detected
-              // So if curr.nlink > prev.nlink probably
-              // means something is added?
-              // we need to find the OBJECT that is added,
-              // which is probably curr.mtime === new object.ctime
-              if(curr.nlink > prev.nlink){
-                // Probably something added
-                // I quess we can find it (no documentation about nlink 'number of links?')
-                var files = self.fs.readdirSync(dir);
-                for (var i = 0; i < files.length; i++) {
-                  var full_path = dir + "/" + files[i];
-                  var stat = self.fs.statSync(full_path);
-                  if (stat.isFile()) {
-                    if(stat.ctime.getTime() === curr.mtime.getTime()){
-                      self.emit("change", full_path, stat, stat, 'new');
-                    }
-                  }
-                }
-              }
-              self.__rescan(add,dir,recursive);
-          }
+          // Something about the directory has changed, most
+          // likely a file has been added. Rescan the directory
+          // to see if anything new is found, and tell it to report
+          // any new files to the user.
+          self.__rescan(add,dir,recursive, true);
         });
       }else{
-        throw 'Folder allready being watched';
+        throw new Error('Folder already being watched');
       }
 
     }else{
-      if(this.__watchedFolders.hasOwnProperty(dir)){
-        self.__rescan(add,dir,this.__watchedFolders[dir].recursive);
-        delete this.__watchedFolders[dir];
+      if(self.__watchedItems.hasOwnProperty(dir)){
+        self.__rescan(add,dir,self.__watchedItems[dir].recursive, false);
+        delete self.__watchedItems[dir];
       }
 
       self.fs.unwatchFile(dir);
     }
 
-    return this;
+    return self;
   };
   
   // ## Private method: __file(boolean, string) ##
   // Finally add (add==true) or remove a
-  // file from watching, only files should be passed here
-  // recursive is therefor obsolete
+  // file from watching, only files should be passed here,
+  // therefore recursive is obsolete.
   // Handle only files
-  // In the watch usage, this should no be async
+  // In the watch usage, this should not be async
   Watch.prototype.__file = function(add, file) {
     var self = this;
     var is_file = false;
@@ -267,6 +252,17 @@ var WatchClass = function() {
       return self;
     }
     if (add) {
+      // Make sure we don't accidently put multiple watchers on a
+      // single file, as this might cause us to report changes several
+      // times and might also cause a memory leak.
+      if (self.__watchedItems.hasOwnProperty(file)) {
+        throw new Error('File already being watched');
+        return self;
+      }
+      // It doesn't really matter what we assign to this key right now,
+      // we merely have to assign something.
+      self.__watchedItems[file] = true;
+
       self.fs.watchFile(file, function watchMe(prev, curr) {
         try {
           // This will cause an error
@@ -281,6 +277,13 @@ var WatchClass = function() {
         catch(e) {
           if (e.code === 'ENOENT') {
             self.emit("change", file, prev, curr,'delete');
+            // If this file isn't explicitly being watched, unwatch it now.
+            // Otherwise we'll wait until the user explicitly removes it
+            // from the list
+            if (self.__topLvlWatchers.indexOf(file) < 0) {
+              self.fs.unwatchFile(file);
+              delete self.__watchedItems[file];
+            }
             return;
           }else{
             throw(e);
@@ -290,30 +293,59 @@ var WatchClass = function() {
     } else {
       // console.log('UN WATCH:'+file);
       self.fs.unwatchFile(file);
+      delete self.__watchedItems[file];
     }  
     return self;
   };
   // Walk a dir and start watching FILES (only Files),
   // if add === false STOP listening
-  // if resurive? Walk the tree, but only ADD files for listenting
-  Watch.prototype.__rescan = function(add,folder, recursive){
+  // if recursive? Walk the tree, but only ADD files for listening
+  // if reportNew? emit the change event for any file we find that wasn't being watched before
+  Watch.prototype.__rescan = function(add,folder, recursive, reportNew){
     var self = this;
     self.fs.stat(folder, function(err,stat){
-      if(!err){
-        var files = self.fs.readdirSync(folder);
-        for (var i = 0; i < files.length; i++) {
-          var full_path = folder + "/" + files[i];
-          if (self.fs.statSync(full_path).isFile()) {
-            self.__file(add, full_path);
-            // If we read a directory, call recursively to `__dir` method
-            // to be able to handle changes in files inside this directory
-          } else if (recursive && self.fs.statSync(full_path).isDirectory()) {
-            self.__dir(add, full_path, recursive);
-          }
+      if(err){
+        if(err.code !== 'ENOENT'){
+          throw err;
+          return;
         }
+        // The watched directory has been deleted, so if it's part of
+        // a recursively watched directory remove it's watcher.
+        // We won't need to call anything recursively to remove watchers
+        // for any descendants because they to will have been deleted and
+        // have this callback.
+        if(self.__topLvlWatchers.indexOf(folder) < 0){
+          self.fs.unwatchFile(folder);
+          delete self.__watchedItems[folder];
+        }
+      }else{
+        var files = self.fs.readdirSync(folder);
+        files.forEach(function (file) {
+          var full_path = self.path.join(folder, file);
+          var stat;
+
+          // We only need to check this path if we aren't already watching it,
+          // or if we need to remove it and all of it's possible descendants.
+          if (!add || !self.__watchedItems.hasOwnProperty(full_path)) {
+            stat = self.fs.statSync(full_path);
+            if (stat.isFile()) {
+              self.__file(add, full_path);
+              // if we aren't in the process of removing listeners and we get to
+              // this point we have a new file that should be reported if this
+              // isn't the initial scan of a directory.
+              if (add && reportNew) {
+                self.emit('change', full_path, stat, stat, 'new');
+              }
+              // If we read a directory, call recursively to `__dir` method
+              // to be able to handle changes in files inside this directory
+            } else if (recursive && stat.isDirectory()) {
+              self.__dir(add, full_path, recursive);
+            }
+          }
+        });
       }
     });
-  }
+  };
 
   return Watch;
 }();
