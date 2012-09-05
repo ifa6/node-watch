@@ -1,5 +1,4 @@
 Jakefile
-README,md
 specs/*
 src/*
 node_modules
