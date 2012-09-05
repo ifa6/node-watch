@@ -236,11 +236,7 @@ var WatchClass = function() {
           self.__rescan(add,dir,recursive, true);
         });
       }else{
-<<<<<<< HEAD
-        throw 'Folder already being watched';
-=======
         throw new Error('Folder already being watched');
->>>>>>> 0.2.0
       }
 
     }else{

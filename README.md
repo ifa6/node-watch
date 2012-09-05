@@ -35,10 +35,11 @@ Make changes in the src/watch.js file or the specs/watchSpec.js file and see te 
      // Nested dirs are not watched
      // dirs can also be added absolute
      watch.add("./spec").add("./lib/watch").onChange(function(file,prev,curr,action){
-        console.log(action);
         console.log(file);
         console.log(prev.mtime.getTime());
         console.log(curr.mtime.getTime());
+        console.log(action) // new, changed, deleted
+
      });
      
      // Clear (remove) the listeners
