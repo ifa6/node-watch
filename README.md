@@ -38,7 +38,7 @@ Make changes in the src/watch.js file or the specs/watchSpec.js file and see te 
         console.log(file);
         console.log(prev.mtime.getTime());
         console.log(curr.mtime.getTime());
-        console.log(action) // new, changed, deleted
+        console.log(action) // new, change, delete
 
      });
      
